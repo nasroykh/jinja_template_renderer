@@ -1,5 +1,6 @@
 {
   "_comment": "Mock data for example.jinja. Edit freely — no Python changes needed.",
+  "_page_size": 10,
   "title": "Example Document",
   "reference": "DOC-2026-001",
   "date": "10/03/2026",
@@ -23,7 +24,6 @@
       "amount": 400.0
     }
   ],
-  "pages": 2,
   "subtotal": 248000.0,
   "tax_rate": 19,
   "tax_amount": 47120.0,

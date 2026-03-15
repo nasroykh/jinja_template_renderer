@@ -1,19 +1,29 @@
 {
   "_comment": "Mock data for example.jinja. Edit freely — no Python changes needed.",
-
+  "_page_size": 10,
   "title": "Example Document",
   "reference": "DOC-2026-001",
   "date": "10/03/2026",
   "status": "Active",
-
   "company_name": "Acme Corp",
   "company_type": "SARL",
   "company_address": "42 Rue de l'Innovation, 16000 Alger",
   "company_nif": "001234567890123",
   "company_rc": "16/00-042000-A26",
-
-  "pages": 2,
-
+  "items": [
+    {
+      "description": "Item 1",
+      "qty": 1,
+      "unit_price": 100.0,
+      "amount": 100.0
+    },
+    {
+      "description": "Item 2",
+      "qty": 2,
+      "unit_price": 200.0,
+      "amount": 400.0
+    }
+  ],
   "subtotal": 248000.0,
   "tax_rate": 19,
   "tax_amount": 47120.0,

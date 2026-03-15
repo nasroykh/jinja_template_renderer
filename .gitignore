@@ -1,4 +1,8 @@
 *.html
+data/
+templates/
+output/
+public/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

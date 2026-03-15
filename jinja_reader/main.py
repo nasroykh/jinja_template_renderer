@@ -44,6 +44,7 @@ class _MockNamespace(_j2utils.Namespace):
 
         attrs["get_formatted"] = _fmt
 
+
 # ---------------------------------------------------------------------------
 # Package-relative directory layout
 # ---------------------------------------------------------------------------
@@ -51,16 +52,17 @@ class _MockNamespace(_j2utils.Namespace):
 _PKG_DIR = Path(__file__).parent
 TEMPLATES_DIR = _PKG_DIR / "templates"
 DATA_DIR = _PKG_DIR / "data"
-OUTPUT_DIR = _PKG_DIR.parent / "output"   # jinja_reader/output/
+OUTPUT_DIR = _PKG_DIR.parent / "output"  # jinja_reader/output/
 _INIT_DIR = _PKG_DIR / "init_files"
 
 # Template file extensions tried in order
-_TEMPLATE_EXTS = (".jinja", ".html")
+_TEMPLATE_EXTS = (".jinja", ".html", ".html.jinja", ".jinja.html")
 
 
 # ---------------------------------------------------------------------------
 # Path resolution helpers
 # ---------------------------------------------------------------------------
+
 
 def _resolve_template(name: str) -> Path:
     """Return the template path for *name*, trying each known extension."""
@@ -78,10 +80,7 @@ def _resolve_data(name: str) -> Path:
     """Return the data file path for *name* and error if it doesn't exist."""
     p = DATA_DIR / f"{name}.json"
     if not p.exists():
-        raise FileNotFoundError(
-            f"No data file found for '{name}'.  "
-            f"Expected: {p}"
-        )
+        raise FileNotFoundError(f"No data file found for '{name}'.  Expected: {p}")
     return p
 
 
@@ -92,18 +91,18 @@ def _resolve_data(name: str) -> Path:
 _last_render_time: list[float] = [0.0]
 
 _LIVE_RELOAD_SCRIPT = (
-    '<script>(function(){'
-    'var t=0;'
-    'function poll(){'
+    "<script>(function(){"
+    "var t=0;"
+    "function poll(){"
     "fetch('/__lr?_='+Date.now())"
-    '.then(function(r){return r.text()})'
-    '.then(function(v){'
-    'if(t&&parseFloat(v)!==t){location.reload()}'
-    't=parseFloat(v)'
-    '}).catch(function(){})'
-    '}'
-    'setInterval(poll,300);poll();'
-    '})();</script>'
+    ".then(function(r){return r.text()})"
+    ".then(function(v){"
+    "if(t&&parseFloat(v)!==t){location.reload()}"
+    "t=parseFloat(v)"
+    "}).catch(function(){})"
+    "}"
+    "setInterval(poll,300);poll();"
+    "})();</script>"
 )
 
 
@@ -155,6 +154,7 @@ def _run_server(port: int, root: Path, live_reload: bool = False) -> None:
 # ---------------------------------------------------------------------------
 # Rendering
 # ---------------------------------------------------------------------------
+
 
 def _inject_live_reload(html: str) -> str:
     idx = html.lower().rfind("</body>")
@@ -225,6 +225,7 @@ def _watch_loop(
 # Commands
 # ---------------------------------------------------------------------------
 
+
 def _cmd_init(name: str) -> int:
     """Create templates/<name>.jinja and data/<name>.json from the example."""
     TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
@@ -247,9 +248,17 @@ def _cmd_init(name: str) -> int:
     print(f"Created  {dest_template}")
     print(f"Created  {dest_data}")
     print(f"\nNext steps:")
-    print(f"  Edit  {dest_template}")
-    print(f"  Edit  {dest_data}")
-    print(f"  python run.py {name} --watch --serve")
+    print(
+        f"  1. Edit {dest_template}  — build your layout, use doc.your_array for row loops"
+    )
+    print(
+        f"  2. Edit {dest_data}  — add your fields + populate your_array with sample rows"
+    )
+    print(
+        f'     Tip: set "_page_size" in the JSON to match the rows-per-page in your template loop'
+    )
+    print(f"         (pages is derived automatically from the array length)")
+    print(f"  3. python run.py {name} --watch --serve")
     return 0
 
 
@@ -259,10 +268,7 @@ def _cmd_list() -> int:
         print("No templates directory found.  Run: python run.py init <name>")
         return 0
 
-    templates = sorted(
-        p for p in TEMPLATES_DIR.iterdir()
-        if p.suffix in _TEMPLATE_EXTS
-    )
+    templates = sorted(p for p in TEMPLATES_DIR.iterdir() if p.suffix in _TEMPLATE_EXTS)
     if not templates:
         print("No templates found.  Run: python run.py init <name>")
         return 0
@@ -287,15 +293,14 @@ def _cmd_render(args: argparse.Namespace) -> int:
         return 1
 
     output_path = (
-        args.output.resolve()
-        if args.output
-        else OUTPUT_DIR / f"{args.name}.html"
+        args.output.resolve() if args.output else OUTPUT_DIR / f"{args.name}.html"
     )
     serve_root = (args.root or output_path.parent).resolve()
 
     # --list-vars
     if args.list_vars:
         from .mock_data import generate_mock_data as _gmd
+
         extracted, _ = _gmd(template_path, data_path)
         print("Variable paths:")
         for p in sorted(extracted.variable_paths):
@@ -412,18 +417,34 @@ def main() -> int:
 
 def _add_render_args(p: argparse.ArgumentParser) -> None:
     """Add render-related flags to an argument parser."""
-    p.add_argument("-o", "--output", type=Path, default=None,
-                   help="Override output file path")
-    p.add_argument("--json-only", action="store_true",
-                   help="Print mock context as JSON and exit")
-    p.add_argument("--list-vars", action="store_true",
-                   help="Print extracted variable paths and exit")
-    p.add_argument("--watch", action="store_true",
-                   help="Re-render on template or data file change")
-    p.add_argument("--serve", type=int, nargs="?", const=3000, metavar="PORT",
-                   help="Serve output on 127.0.0.1 (default port 3000)")
-    p.add_argument("--root", type=Path, default=None,
-                   help="Document root for --serve (default: output directory)")
+    p.add_argument(
+        "-o", "--output", type=Path, default=None, help="Override output file path"
+    )
+    p.add_argument(
+        "--json-only", action="store_true", help="Print mock context as JSON and exit"
+    )
+    p.add_argument(
+        "--list-vars",
+        action="store_true",
+        help="Print extracted variable paths and exit",
+    )
+    p.add_argument(
+        "--watch", action="store_true", help="Re-render on template or data file change"
+    )
+    p.add_argument(
+        "--serve",
+        type=int,
+        nargs="?",
+        const=3000,
+        metavar="PORT",
+        help="Serve output on 127.0.0.1 (default port 3000)",
+    )
+    p.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        help="Document root for --serve (default: output directory)",
+    )
 
 
 if __name__ == "__main__":

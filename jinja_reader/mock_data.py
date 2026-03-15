@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import random
 from pathlib import Path
 from typing import Any
@@ -88,10 +89,17 @@ class FrappeMock:
 # Data file loader
 # ---------------------------------------------------------------------------
 
-def load_data_file(data_path: Path) -> dict[str, Any]:
-    """Load a template's JSON data file, stripping comment keys."""
+def load_data_file(data_path: Path) -> tuple[dict[str, Any], int]:
+    """Load a template's JSON data file.
+
+    Returns (field_mocks, page_size) where:
+    - field_mocks: data dict with comment keys (starting with "_") stripped
+    - page_size: rows per page for the fallback mock generator, taken from the
+      optional ``_page_size`` JSON key (default 23)
+    """
     data = json.loads(data_path.read_text(encoding="utf-8"))
-    return {k: v for k, v in data.items() if not k.startswith("_")}
+    page_size = int(data.get("_page_size", 23))
+    return {k: v for k, v in data.items() if not k.startswith("_")}, page_size
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +135,7 @@ def _mock_value(field_name: str, field_mocks: dict[str, Any], index: int = 0) ->
 # ---------------------------------------------------------------------------
 
 def build_mock_context(
-    extracted: ExtractedVariables, field_mocks: dict[str, Any]
+    extracted: ExtractedVariables, field_mocks: dict[str, Any], page_size: int = 23
 ) -> dict[str, Any]:
     """
     Build a complete Jinja context dict from extracted variable information.
@@ -171,24 +179,36 @@ def build_mock_context(
                 continue
             obj[immediate] = _mock_value(field, field_mocks, 0)
 
-        if "pages" in obj and not isinstance(obj["pages"], int):
-            obj["pages"] = 2
-        pages = obj.get("pages", 2) if isinstance(obj.get("pages"), int) else 2
+        # Process iterable fields first so we can derive `pages` from real data.
+        _page_size = page_size
 
         for iter_path, loop_var in extracted.loop_vars.items():
             if not iter_path.startswith(root + "."):
                 continue
             list_field = iter_path[len(root) + 1:].split(".")[0]
             item_fields = root_fields.get(loop_var, set())
-            count = max(pages * 23, 25)
-            items: list[Any] = []
-            for i in range(count):
-                item_dict = {
-                    f.split(".")[0]: _mock_value(f.split(".")[0], field_mocks, i)
-                    for f in item_fields
-                }
-                # Wrap in DocMock so get_formatted() works on loop items
-                items.append(DocMock(item_dict) if root == "doc" else item_dict)
+
+            raw_list = field_mocks.get(list_field)
+            if isinstance(raw_list, list):
+                # Use the actual items from the JSON data file and derive pages.
+                items: list[Any] = [
+                    DocMock(item) if root == "doc" else item
+                    for item in raw_list
+                ]
+                obj["pages"] = max(1, math.ceil(len(items) / _page_size))
+            else:
+                # Fall back to generating mock items based on the pages field.
+                pages = obj.get("pages", 2) if isinstance(obj.get("pages"), int) else 2
+                count = max(pages * _page_size, 25)
+                items = []
+                for i in range(count):
+                    item_dict = {
+                        f.split(".")[0]: _mock_value(f.split(".")[0], field_mocks, i)
+                        for f in item_fields
+                    }
+                    # Wrap in DocMock so get_formatted() works on loop items
+                    items.append(DocMock(item_dict) if root == "doc" else item_dict)
+
             obj[list_field] = items
 
         if root == "frappe":
@@ -208,6 +228,6 @@ def generate_mock_data(
     """Read a template + its data file, and return (extracted, context)."""
     source = read_template(template_path)
     extracted = extract_variables_from_template(source)
-    field_mocks = load_data_file(Path(data_path))
-    context = build_mock_context(extracted, field_mocks)
+    field_mocks, page_size = load_data_file(Path(data_path))
+    context = build_mock_context(extracted, field_mocks, page_size)
     return extracted, context
