@@ -1,4 +1,4 @@
-"""CLI entry point for jinja_reader."""
+"""CLI entry point for FFP (Foxmayn Frappe Print)."""
 
 from __future__ import annotations
 
@@ -46,13 +46,15 @@ class _MockNamespace(_j2utils.Namespace):
 
 
 # ---------------------------------------------------------------------------
-# Package-relative directory layout
+# Directory layout: templates/, data/ and output/ live in the current working
+# directory, so an installed copy never writes into site-packages.
 # ---------------------------------------------------------------------------
 
 _PKG_DIR = Path(__file__).parent
-TEMPLATES_DIR = _PKG_DIR / "templates"
-DATA_DIR = _PKG_DIR / "data"
-OUTPUT_DIR = _PKG_DIR.parent / "output"  # jinja_reader/output/
+_WORK_DIR = Path.cwd()
+TEMPLATES_DIR = _WORK_DIR / "templates"
+DATA_DIR = _WORK_DIR / "data"
+OUTPUT_DIR = _WORK_DIR / "output"
 _INIT_DIR = _PKG_DIR / "init_files"
 
 # Template file extensions tried in order
@@ -258,19 +260,19 @@ def _cmd_init(name: str) -> int:
         f'     Tip: set "_page_size" in the JSON to match the rows-per-page in your template loop'
     )
     print(f"         (pages is derived automatically from the array length)")
-    print(f"  3. python run.py {name} --watch --serve")
+    print(f"  3. ffp {name} --watch --serve")
     return 0
 
 
 def _cmd_list() -> int:
     """List available templates and whether each has a matching data file."""
     if not TEMPLATES_DIR.exists():
-        print("No templates directory found.  Run: python run.py init <name>")
+        print("No templates directory found.  Run: ffp init <name>")
         return 0
 
     templates = sorted(p for p in TEMPLATES_DIR.iterdir() if p.suffix in _TEMPLATE_EXTS)
     if not templates:
-        print("No templates found.  Run: python run.py init <name>")
+        print("No templates found.  Run: ffp init <name>")
         return 0
 
     print("Available templates:\n")
@@ -375,14 +377,14 @@ _SUBCOMMANDS = {"init", "list", "render"}
 
 
 def main() -> int:
-    # Allow `python run.py <name> [flags]` as a shorthand for `render <name>`
+    # Allow `ffp <name> [flags]` as a shorthand for `render <name>`
     argv = sys.argv[1:]
     if argv and argv[0] not in _SUBCOMMANDS and not argv[0].startswith("-"):
         argv = ["render"] + argv
 
     parser = argparse.ArgumentParser(
-        prog="jinja-reader",
-        description="Render a Jinja template with mock data.",
+        prog="ffp",
+        description="Preview Frappe / ERPNext print formats (Jinja) outside a Frappe site.",
     )
     sub = parser.add_subparsers(dest="command")
 

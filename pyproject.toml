@@ -1,18 +1,46 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "jinja-reader"
-version = "0.1.0"
-description = "Standalone Jinja template reader: extract variables and generate mock data"
+name = "foxmayn-ffp"
+version = "1.0.0"
+description = "FFP (Foxmayn Frappe Print): preview Frappe / ERPNext print formats (Jinja) outside a Frappe site, with live reload."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
+authors = [{ name = "Foxmayn" }]
+keywords = ["frappe", "erpnext", "jinja", "print-format", "preview"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Testing",
+]
 dependencies = ["jinja2>=3.0"]
 
-[project.scripts]
-jinja-reader = "jinja_reader.main:main"
+[project.optional-dependencies]
+test = ["pytest>=7"]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["jinja_reader"]
+[project.scripts]
+ffp = "jinja_reader.main:main"
+
+[project.urls]
+Homepage = "https://foxmayn.com"
+Repository = "https://github.com/nasroykh/jinja_template_renderer"
+Issues = "https://github.com/nasroykh/jinja_template_renderer/issues"
+Changelog = "https://github.com/nasroykh/jinja_template_renderer/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["jinja_reader"]
+
+[tool.hatch.build.targets.sdist]
+include = ["jinja_reader", "tests", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

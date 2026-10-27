@@ -1,3 +1,3 @@
-"""jinja_reader - Standalone Jinja template reader: extract variables and generate mock data."""
+"""FFP (Foxmayn Frappe Print): preview Frappe / ERPNext print formats outside a Frappe site."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
